@@ -264,7 +264,7 @@
       </div>
       <input type="text" id="username" placeholder="Username" required />
       <input type="password" id="password" placeholder="Password" required />
-      <button onclick="handleLogin()">Sign In</button>
+      <button id="login-button" onclick="handleLogin()">Sign In</button>
     </div>
 
     <div class="container" id="main-workspace">
@@ -394,35 +394,52 @@
     <script>
       const API_URL = "/api/transactions";
 
-      // HARDCODED SYSTEM CREDENTIALS (Change these to whatever you want)
-      const AUTH_USER = "admin";
-      const AUTH_PASS = "12345";
-
-      // Check login state when page loads
-      window.onload = function () {
+      window.onload = async function () {
         document.getElementById("date").valueAsDate = new Date();
-        if (sessionStorage.getItem("isLoggedIn") === "true") {
+        try {
+          await request("/api/auth/session");
           showWorkspace();
+        } catch {
+          showLogin();
         }
       };
 
-      function handleLogin() {
+      async function handleLogin() {
         const user = document.getElementById("username").value;
         const pass = document.getElementById("password").value;
         const errorMsg = document.getElementById("login-error");
+        const loginButton = document.getElementById("login-button");
 
-        if (user === AUTH_USER && pass === AUTH_PASS) {
-          sessionStorage.setItem("isLoggedIn", "true");
+        try {
+          loginButton.disabled = true;
+          await request("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: user, password: pass }),
+          });
           errorMsg.style.display = "none";
+          document.getElementById("password").value = "";
           showWorkspace();
-        } else {
+        } catch (error) {
+          errorMsg.textContent = error.message;
           errorMsg.style.display = "block";
+        } finally {
+          loginButton.disabled = false;
         }
       }
 
-      function handleLogout() {
-        sessionStorage.removeItem("isLoggedIn");
-        window.location.reload();
+      async function handleLogout() {
+        try {
+          await request("/api/auth/logout", { method: "POST" });
+        } finally {
+          showLogin();
+        }
+      }
+
+      function showLogin() {
+        document.getElementById("auth-container").style.display = "block";
+        document.getElementById("main-workspace").style.display = "none";
+        document.getElementById("password").value = "";
       }
 
       function showWorkspace() {
@@ -443,10 +460,16 @@
         notice.className = "notice";
       }
 
-      async function request(url, options) {
-        const response = await fetch(url, options);
+      async function request(url, options = {}) {
+        const response = await fetch(url, {
+          credentials: "same-origin",
+          ...options,
+        });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
+          if (response.status === 401 && url !== "/api/auth/login") {
+            showLogin();
+          }
           const details = Array.isArray(data.details)
             ? `: ${data.details.join(", ")}`
             : "";
@@ -454,6 +477,12 @@
         }
         return data;
       }
+
+      document.getElementById("password").addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          handleLogin();
+        }
+      });
 
       async function loadLedger() {
         try {
@@ -549,7 +578,7 @@
           ? Object.keys(expenses)
               .map(
                 (cur) =>
-                  `<div class="stat-line"><strong>${cur}:</strong> <span>${expenses[cur].toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>`,
+                  `<div class="stat-line"><strong>${escapeHtml(cur)}:</strong> <span>${expenses[cur].toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>`,
               )
               .join("")
           : `<div class="stat-line" style="color:#999;">No expenses logged yet</div>`;

@@ -9,13 +9,13 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
+    "auth:hash": "node scripts/hash-password.js",
     "test": "node --test"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "mongoose": "^9.7.0"
