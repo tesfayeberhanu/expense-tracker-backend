@@ -166,4 +166,26 @@ function createApp({ Transaction, auth = createAuthFromEnvironment() }) {
   return app;
 }
 
-module.exports = { createApp };
+let deployedApp;
+
+function deployedHandler(req, res, next) {
+  if (!deployedApp) {
+    if (!process.env.MONGO_URI) {
+      throw new Error("MONGO_URI is required");
+    }
+
+    const Transaction = require("./Transaction");
+    deployedApp = createApp({ Transaction });
+
+    if (mongoose.connection.readyState === 0) {
+      mongoose.connect(process.env.MONGO_URI).catch((error) => {
+        console.error("Unable to connect to database:", error.message);
+      });
+    }
+  }
+
+  return deployedApp(req, res, next);
+}
+
+module.exports = deployedHandler;
+module.exports.createApp = createApp;

@@ -1,7 +1,8 @@
 const assert = require("node:assert/strict");
 const { afterEach, beforeEach, test } = require("node:test");
 
-const { createApp } = require("../app");
+const appModule = require("../app");
+const { createApp } = appModule;
 const { createAuth, hashPassword } = require("../auth");
 
 const PASSWORD = "a-secure-test-password";
@@ -54,6 +55,10 @@ class FakeTransaction {
 
 let server;
 let baseUrl;
+
+test("exports a Vercel-compatible default handler", () => {
+  assert.equal(typeof appModule, "function");
+});
 
 beforeEach(async () => {
   FakeTransaction.records = [];
