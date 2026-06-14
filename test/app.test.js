@@ -98,13 +98,40 @@ async function login(password = PASSWORD) {
 }
 
 test("protects all private API endpoints", async () => {
-  for (const path of ["/api/health", "/api/transactions", "/api/auth/session"]) {
-    const response = await fetch(`${baseUrl}${path}`);
+  const privateRequests = [
+    { path: "/api/health" },
+    { path: "/api/transactions" },
+    { path: "/api/transactions", options: { method: "POST" } },
+    { path: "/api/transactions/1", options: { method: "DELETE" } },
+    { path: "/api/transactions/1/toggle", options: { method: "PATCH" } },
+    { path: "/api/auth/session" },
+    { path: "/api/auth/logout", options: { method: "POST" } },
+    { path: "/api/not-a-real-endpoint" },
+  ];
+
+  for (const { path, options } of privateRequests) {
+    const response = await fetch(`${baseUrl}${path}`, options);
     assert.equal(response.status, 401);
     assert.deepEqual(await response.json(), {
       error: "Authentication required",
     });
   }
+});
+
+test("exposes only the login page and login API without authentication", async () => {
+  const pageResponse = await fetch(baseUrl);
+  assert.equal(pageResponse.status, 200);
+  assert.match(pageResponse.headers.get("content-type"), /text\/html/);
+
+  const loginResponse = await fetch(`${baseUrl}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: "admin", password: "wrong-password" }),
+  });
+  assert.equal(loginResponse.status, 401);
+  assert.deepEqual(await loginResponse.json(), {
+    error: "Invalid username or password",
+  });
 });
 
 test("logs in with a secure cookie and grants access", async () => {

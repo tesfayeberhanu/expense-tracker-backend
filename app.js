@@ -65,15 +65,6 @@ function createApp({ Transaction, auth = createAuthFromEnvironment() }) {
   app.set("trust proxy", 1);
   app.use(securityHeaders);
   app.use(express.json({ limit: "100kb" }));
-  app.use(
-    express.static(path.join(__dirname, "public"), {
-      setHeaders(res, filePath) {
-        if (filePath.endsWith(".html")) {
-          res.set("Cache-Control", "no-store");
-        }
-      },
-    }),
-  );
   app.use("/api", (_req, res, next) => {
     res.set("Cache-Control", "no-store");
     next();
@@ -81,10 +72,10 @@ function createApp({ Transaction, auth = createAuthFromEnvironment() }) {
   app.use("/api", requireSameOrigin);
 
   app.post("/api/auth/login", auth.login);
-  app.post("/api/auth/logout", auth.logout);
-  app.get("/api/auth/session", auth.requireAuth, auth.session);
-
   app.use("/api", auth.requireAuth);
+
+  app.post("/api/auth/logout", auth.logout);
+  app.get("/api/auth/session", auth.session);
 
   app.get("/api/health", (_req, res) => {
     const database =
@@ -146,6 +137,16 @@ function createApp({ Transaction, auth = createAuthFromEnvironment() }) {
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "API endpoint not found" });
   });
+
+  app.use(
+    express.static(path.join(__dirname, "public"), {
+      setHeaders(res, filePath) {
+        if (filePath.endsWith(".html")) {
+          res.set("Cache-Control", "no-store");
+        }
+      },
+    }),
+  );
 
   app.use((error, _req, res, _next) => {
     if (error instanceof SyntaxError && error.status === 400) {

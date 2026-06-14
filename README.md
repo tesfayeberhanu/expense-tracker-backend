@@ -42,13 +42,23 @@ the same process.
 
 ## API
 
+Public:
+
+- `GET /` and `GET /index.html` serve the sign-in interface.
+- `POST /api/auth/login` accepts credentials and creates a session.
+
+Requires an authenticated session:
+
+- `POST /api/auth/logout`
+- `GET /api/auth/session`
 - `GET /api/health`
 - `GET /api/transactions`
 - `POST /api/transactions`
 - `PATCH /api/transactions/:id/toggle`
 - `DELETE /api/transactions/:id`
 
-All API routes require a signed, `HttpOnly`, same-site session cookie except
-`POST /api/auth/login` and `POST /api/auth/logout`. Authentication configuration
-is mandatory, so the server refuses to start if its credentials or session
-secret are missing.
+All other `/api/*` requests also require authentication before receiving a
+not-found response. Sessions use a signed, `HttpOnly`, same-site cookie. The
+public sign-in page contains no ledger data. Authentication configuration is
+mandatory, so the server refuses to start if its credentials or session secret
+are missing.
