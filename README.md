@@ -25,7 +25,8 @@ Create a Web Service from the
 
 - Branch: `main`
 - Run command: `npm start`
-- HTTP port: `8080`
+- HTTP port: `8080` if you configure `PORT=8080`; otherwise let
+  DigitalOcean inject `PORT`
 - Health check path: `/healthz`
 - Encrypted runtime variable: `MONGO_URI`
 - Runtime variable: `FRONTEND_ORIGINS=https://lbk-finance.vercel.app`
