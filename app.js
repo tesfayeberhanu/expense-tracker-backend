@@ -8,14 +8,7 @@ import session from "./api/session.js";
 import settings from "./api/settings.js";
 import transactions from "./api/transactions.js";
 import username from "./api/username.js";
-
-const trustedOrigins = () =>
-  new Set(
-    String(process.env.FRONTEND_ORIGINS || "")
-      .split(",")
-      .map((origin) => origin.trim())
-      .filter(Boolean),
-  );
+import { isTrustedOrigin } from "./api/_origins.js";
 
 const asyncHandler = (handler) => async (request, response, next) => {
   try {
@@ -32,13 +25,16 @@ export const createApp = () => {
   app.set("trust proxy", 1);
   app.use((request, response, next) => {
     const origin = request.headers.origin;
-    if (origin && trustedOrigins().has(origin)) {
+    if (origin && isTrustedOrigin(origin)) {
       response.setHeader("Access-Control-Allow-Origin", origin);
       response.setHeader("Access-Control-Allow-Credentials", "true");
-      response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      response.setHeader(
+        "Access-Control-Allow-Headers",
+        request.headers["access-control-request-headers"] || "Content-Type",
+      );
       response.setHeader(
         "Access-Control-Allow-Methods",
-        "GET,POST,PUT,OPTIONS",
+        "GET,POST,PUT,PATCH,DELETE,OPTIONS",
       );
       response.setHeader("Vary", "Origin");
     }

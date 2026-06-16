@@ -14,7 +14,10 @@ Required environment variable:
 
 - `MONGO_URI`: MongoDB connection string
 - `FRONTEND_ORIGINS`: comma-separated frontend origins allowed to call the API
-  directly, for example `https://lbk-finance.vercel.app`
+  directly, for example
+  `https://lbk-finance.vercel.app,http://localhost:5173`
+  Localhost origins and this project's Vercel frontend preview URLs are also
+  accepted by the API CORS guard.
 
 The server listens on `PORT`, defaulting to `8080`.
 
@@ -29,7 +32,8 @@ Create a Web Service from the
   DigitalOcean inject `PORT`
 - Health check path: `/healthz`
 - Encrypted runtime variable: `MONGO_URI`
-- Runtime variable: `FRONTEND_ORIGINS=https://lbk-finance.vercel.app`
+- Runtime variable:
+  `FRONTEND_ORIGINS=https://lbk-finance.vercel.app,https://expense-tracker-frontend-five-inky.vercel.app,http://localhost:5173`
 
 After DigitalOcean reports the service healthy, configure the frontend to proxy
 `/api/*` requests to the DigitalOcean service. Do not expose `MONGO_URI` to the

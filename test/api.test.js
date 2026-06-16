@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { clearSessionCookie } from "../api/_auth.js";
+import { isTrustedOrigin } from "../api/_origins.js";
 import { Transaction } from "../api/_transactions.js";
 import { hashPassword, passwordMatches, validateUsername } from "../api/_users.js";
 import configuration from "../api/configuration.js";
@@ -84,6 +85,18 @@ test("rejects cross-site state-changing requests", async () => {
       error: "Cross-site request rejected.",
     });
   }
+});
+
+test("trusts local development and project frontend origins", () => {
+  assert.equal(isTrustedOrigin("http://localhost:5173"), true);
+  assert.equal(isTrustedOrigin("http://127.0.0.1:3000"), true);
+  assert.equal(isTrustedOrigin("https://lbk-finance.vercel.app"), true);
+  assert.equal(
+    isTrustedOrigin("https://expense-tracker-frontend-git-main-teneshuberhanu-3636s-projects.vercel.app"),
+    true,
+  );
+  assert.equal(isTrustedOrigin("https://attacker.example"), false);
+  assert.equal(isTrustedOrigin("https://random-app.vercel.app"), false);
 });
 
 test("rejects direct browser navigation to transactions", async () => {
