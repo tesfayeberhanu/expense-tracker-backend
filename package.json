@@ -1,20 +1,16 @@
 {
   "name": "expense-tracker-backend",
-  "version": "1.0.0",
-  "description": "FOREX and USDT transaction ledger",
-  "main": "server.js",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
   "engines": {
-    "node": ">=20.19.0"
+    "node": "24.x"
   },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "auth:hash": "node scripts/hash-password.js",
     "test": "node --test"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
