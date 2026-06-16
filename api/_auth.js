@@ -6,6 +6,14 @@ import { User } from "./_users.js";
 const SESSION_COOKIE = "lp_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 12;
 
+const trustedOrigins = () =>
+  new Set(
+    String(process.env.FRONTEND_ORIGINS || "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  );
+
 const SessionSchema = new mongoose.Schema(
   {
     tokenHash: {
@@ -54,7 +62,8 @@ export const createSessionCookie = async (userId) => {
     user: userId,
     expiresAt: new Date(Date.now() + SESSION_DURATION_SECONDS * 1000),
   });
-  return `${SESSION_COOKIE}=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${SESSION_DURATION_SECONDS}`;
+  const sameSite = trustedOrigins().size > 0 ? "None" : "Strict";
+  return `${SESSION_COOKIE}=${token}; HttpOnly; Secure; SameSite=${sameSite}; Path=/; Max-Age=${SESSION_DURATION_SECONDS}`;
 };
 
 export const clearSessionCookie = () =>
@@ -102,13 +111,15 @@ export const requireSameOrigin = (request, response) => {
 
   const origin = request.headers.origin;
   const fetchSite = request.headers["sec-fetch-site"];
+  const originIsTrusted = origin && trustedOrigins().has(origin);
   const host = request.headers["x-forwarded-host"] || request.headers.host;
   const forwardedProtocol = request.headers["x-forwarded-proto"];
   const protocol = forwardedProtocol?.split(",")[0]?.trim() || "https";
 
   if (
-    fetchSite === "cross-site" ||
-    (origin && (!host || origin !== `${protocol}://${host}`))
+    !originIsTrusted &&
+    (fetchSite === "cross-site" ||
+      (origin && (!host || origin !== `${protocol}://${host}`)))
   ) {
     sendJson(response, 403, { error: "Cross-site request rejected." });
     return false;

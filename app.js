@@ -9,6 +9,14 @@ import settings from "./api/settings.js";
 import transactions from "./api/transactions.js";
 import username from "./api/username.js";
 
+const trustedOrigins = () =>
+  new Set(
+    String(process.env.FRONTEND_ORIGINS || "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  );
+
 const asyncHandler = (handler) => async (request, response, next) => {
   try {
     await handler(request, response);
@@ -22,6 +30,26 @@ export const createApp = () => {
 
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
+  app.use((request, response, next) => {
+    const origin = request.headers.origin;
+    if (origin && trustedOrigins().has(origin)) {
+      response.setHeader("Access-Control-Allow-Origin", origin);
+      response.setHeader("Access-Control-Allow-Credentials", "true");
+      response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      response.setHeader(
+        "Access-Control-Allow-Methods",
+        "GET,POST,PUT,OPTIONS",
+      );
+      response.setHeader("Vary", "Origin");
+    }
+
+    if (request.method === "OPTIONS") {
+      response.status(204).end();
+      return;
+    }
+
+    next();
+  });
   app.use(express.json({ limit: "100kb" }));
 
   app.get("/healthz", (_request, response) => {

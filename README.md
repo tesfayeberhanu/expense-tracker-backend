@@ -13,6 +13,8 @@ npm start
 Required environment variable:
 
 - `MONGO_URI`: MongoDB connection string
+- `FRONTEND_ORIGINS`: comma-separated frontend origins allowed to call the API
+  directly, for example `https://lbk-finance.vercel.app`
 
 The server listens on `PORT`, defaulting to `8080`.
 
@@ -26,6 +28,7 @@ Create a Web Service from the
 - HTTP port: `8080`
 - Health check path: `/healthz`
 - Encrypted runtime variable: `MONGO_URI`
+- Runtime variable: `FRONTEND_ORIGINS=https://lbk-finance.vercel.app`
 
 After DigitalOcean reports the service healthy, configure the frontend to proxy
 `/api/*` requests to the DigitalOcean service. Do not expose `MONGO_URI` to the
