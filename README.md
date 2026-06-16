@@ -1,6 +1,6 @@
 # LBK Finance Backend
 
-Standalone Express and Mongoose API for the LBK Finance frontend.
+Standalone Express and Mongoose API for LBK Finance.
 
 ## Local development
 
@@ -13,11 +13,8 @@ npm start
 Required environment variable:
 
 - `MONGO_URI`: MongoDB connection string
-- `FRONTEND_ORIGINS`: comma-separated frontend origins allowed to call the API
-  directly, for example
-  `https://lbk-finance.vercel.app,http://localhost:5173`
-  Localhost origins and this project's Vercel frontend preview URLs are also
-  accepted by the API CORS guard.
+- `CORS_ORIGINS`: comma-separated browser origins allowed to call the API
+  directly, for example `https://app.example.com,http://localhost:5173`
 
 The server listens on `PORT`, defaulting to `8080`.
 
@@ -32,12 +29,11 @@ Create a Web Service from the
   DigitalOcean inject `PORT`
 - Health check path: `/healthz`
 - Encrypted runtime variable: `MONGO_URI`
-- Runtime variable:
-  `FRONTEND_ORIGINS=https://lbk-finance.vercel.app,https://expense-tracker-frontend-five-inky.vercel.app,http://localhost:5173`
+- Runtime variable: `CORS_ORIGINS=https://app.example.com`
 
-After DigitalOcean reports the service healthy, configure the frontend to proxy
-`/api/*` requests to the DigitalOcean service. Do not expose `MONGO_URI` to the
-frontend.
+After DigitalOcean reports the service healthy, point your browser client or
+reverse proxy at the DigitalOcean service. Do not expose `MONGO_URI` outside the
+backend runtime.
 
 ## API
 

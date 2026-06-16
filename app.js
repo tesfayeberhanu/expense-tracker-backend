@@ -8,7 +8,7 @@ import session from "./api/session.js";
 import settings from "./api/settings.js";
 import transactions from "./api/transactions.js";
 import username from "./api/username.js";
-import { isTrustedOrigin } from "./api/_origins.js";
+import { isAllowedOrigin } from "./api/_cors.js";
 
 const asyncHandler = (handler) => async (request, response, next) => {
   try {
@@ -25,7 +25,7 @@ export const createApp = () => {
   app.set("trust proxy", 1);
   app.use((request, response, next) => {
     const origin = request.headers.origin;
-    if (origin && isTrustedOrigin(origin)) {
+    if (origin && isAllowedOrigin(origin)) {
       response.setHeader("Access-Control-Allow-Origin", origin);
       response.setHeader("Access-Control-Allow-Credentials", "true");
       response.setHeader(

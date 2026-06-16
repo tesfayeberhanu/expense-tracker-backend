@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import mongoose from "mongoose";
+import { hasCrossOriginClient, isAllowedOrigin } from "./_cors.js";
 import { connectDatabase } from "./_database.js";
-import { hasCrossOriginFrontend, isTrustedOrigin } from "./_origins.js";
 import { User } from "./_users.js";
 
 const SESSION_COOKIE = "lp_session";
@@ -55,7 +55,7 @@ export const createSessionCookie = async (userId) => {
     user: userId,
     expiresAt: new Date(Date.now() + SESSION_DURATION_SECONDS * 1000),
   });
-  const sameSite = hasCrossOriginFrontend() ? "None" : "Strict";
+  const sameSite = hasCrossOriginClient() ? "None" : "Strict";
   return `${SESSION_COOKIE}=${token}; HttpOnly; Secure; SameSite=${sameSite}; Path=/; Max-Age=${SESSION_DURATION_SECONDS}`;
 };
 
@@ -104,7 +104,7 @@ export const requireSameOrigin = (request, response) => {
 
   const origin = request.headers.origin;
   const fetchSite = request.headers["sec-fetch-site"];
-  const originIsTrusted = origin && isTrustedOrigin(origin);
+  const originIsTrusted = origin && isAllowedOrigin(origin);
   const host = request.headers["x-forwarded-host"] || request.headers.host;
   const forwardedProtocol = request.headers["x-forwarded-proto"];
   const protocol = forwardedProtocol?.split(",")[0]?.trim() || "https";
