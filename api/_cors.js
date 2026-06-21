@@ -1,3 +1,6 @@
+const defaultOrigins = ["https://lbk-finance.vercel.app"];
+const localDevelopmentOrigin = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/;
+
 const parseOrigins = (value) =>
   String(value || "")
     .split(",")
@@ -5,11 +8,15 @@ const parseOrigins = (value) =>
     .filter(Boolean);
 
 export const configuredOrigins = () =>
-  new Set(parseOrigins(process.env.CORS_ORIGINS));
+  new Set([...defaultOrigins, ...parseOrigins(process.env.CORS_ORIGINS)]);
 
 export const isAllowedOrigin = (origin) => {
   if (!origin) return false;
-  return configuredOrigins().has(origin.replace(/\/+$/, ""));
+  const normalizedOrigin = origin.replace(/\/+$/, "");
+  return (
+    configuredOrigins().has(normalizedOrigin) ||
+    localDevelopmentOrigin.test(normalizedOrigin)
+  );
 };
 
 export const hasCrossOriginClient = () => configuredOrigins().size > 0;

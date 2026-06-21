@@ -89,10 +89,12 @@ test("rejects cross-site state-changing requests", async () => {
 });
 
 test("allows only configured CORS origins", () => {
-  process.env.CORS_ORIGINS =
-    "http://localhost:5173,https://client.example.com";
+  process.env.CORS_ORIGINS = "https://client.example.com";
 
+  assert.equal(isAllowedOrigin("https://lbk-finance.vercel.app"), true);
   assert.equal(isAllowedOrigin("http://localhost:5173"), true);
+  assert.equal(isAllowedOrigin("http://localhost:5174"), true);
+  assert.equal(isAllowedOrigin("http://127.0.0.1:3000"), true);
   assert.equal(isAllowedOrigin("https://client.example.com"), true);
   assert.equal(isAllowedOrigin("https://client.example.com/"), true);
   assert.equal(isAllowedOrigin("https://random-app.example.com"), false);

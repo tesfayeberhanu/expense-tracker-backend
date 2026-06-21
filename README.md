@@ -13,9 +13,10 @@ npm start
 Required environment variable:
 
 - `MONGO_URI`: MongoDB connection string
-- `CORS_ORIGINS`: comma-separated browser origins allowed to call the API
-  directly, for example
-  `https://lbk-finance.vercel.app,http://localhost:5173,http://localhost:3000`.
+- `CORS_ORIGINS`: optional comma-separated browser origins allowed to call the
+  API directly. `https://lbk-finance.vercel.app` and localhost development
+  origins are allowed by default. Add any additional deployed client domains
+  here.
 
 The server listens on `PORT`, defaulting to `8080`.
 
@@ -30,8 +31,8 @@ Create a Web Service from the
   DigitalOcean inject `PORT`
 - Health check path: `/healthz`
 - Encrypted runtime variable: `MONGO_URI`
-- Runtime variable:
-  `CORS_ORIGINS=https://lbk-finance.vercel.app,http://localhost:5173,http://localhost:3000`
+- Runtime variable: set `CORS_ORIGINS` only for additional deployed client
+  domains beyond the default `https://lbk-finance.vercel.app`.
 
 After DigitalOcean reports the service healthy, point your browser client or
 reverse proxy at the DigitalOcean service. Do not expose `MONGO_URI` outside the
