@@ -93,12 +93,9 @@ test("allows only configured CORS origins", () => {
     "http://localhost:5173,https://client.example.com";
 
   assert.equal(isAllowedOrigin("http://localhost:5173"), true);
-  assert.equal(
-    isAllowedOrigin("https://expense-tracker-frontend-lyplbb0ib.vercel.app"),
-    true,
-  );
   assert.equal(isAllowedOrigin("https://client.example.com"), true);
   assert.equal(isAllowedOrigin("https://client.example.com/"), true);
+  assert.equal(isAllowedOrigin("https://random-app.example.com"), false);
   assert.equal(isAllowedOrigin("https://attacker.example"), false);
 });
 
