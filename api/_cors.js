@@ -1,4 +1,7 @@
-const defaultOrigins = ["https://lbk-finance.vercel.app"];
+const defaultOrigins = [
+  "https://lbk-finance.vercel.app",
+  "https://tbk-expense-tracker.vercel.app",
+];
 const localDevelopmentOrigin = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/;
 
 const parseOrigins = (value) =>
