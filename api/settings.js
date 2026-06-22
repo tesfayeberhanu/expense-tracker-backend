@@ -1,6 +1,6 @@
 import {
-  hasValidSession,
   requireApiRequest,
+  requirePermission,
   requireSameOrigin,
   sendJson,
 } from "./_auth.js";
@@ -16,14 +16,17 @@ export default async function handler(request, response) {
   if (!requireApiRequest(request, response)) return;
   if (!requireSameOrigin(request, response)) return;
 
-  if (!(await hasValidSession(request))) {
-    return sendJson(response, 401, { error: "Authentication required." });
-  }
-
   if (!ALLOWED_METHODS.has(request.method)) {
     response.setHeader("Allow", [...ALLOWED_METHODS].join(", "));
     return sendJson(response, 405, { error: "Method not allowed." });
   }
+
+  const user = await requirePermission(
+    request,
+    response,
+    request.method === "PUT" ? "settings:update" : "settings:read",
+  );
+  if (!user) return;
 
   try {
     await connectDatabase();

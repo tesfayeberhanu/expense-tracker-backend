@@ -7,6 +7,36 @@ const MINIMUM_USERNAME_LENGTH = 2;
 const MAXIMUM_USERNAME_LENGTH = 120;
 const SCRYPT_KEY_LENGTH = 64;
 
+export const ROLES = {
+  ADMIN: "admin",
+  OPERATOR: "operator",
+};
+
+export const PERMISSIONS = [
+  "operators:manage",
+  "transactions:create",
+  "transactions:read",
+  "transactions:read_all",
+  "transactions:update",
+  "transactions:delete",
+  "reports:view",
+  "reports:view_all",
+  "settings:read",
+  "settings:update",
+  "configuration:read",
+];
+
+export const DEFAULT_OPERATOR_PERMISSIONS = [
+  "transactions:create",
+  "transactions:read",
+  "reports:view",
+  "settings:read",
+  "configuration:read",
+];
+
+const ADMIN_PERMISSIONS = [...PERMISSIONS];
+const PERMISSION_SET = new Set(PERMISSIONS);
+
 const UserSchema = new mongoose.Schema(
   {
     username: {
@@ -28,6 +58,17 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    role: {
+      type: String,
+      enum: Object.values(ROLES),
+      default: ROLES.OPERATOR,
+      index: true,
+    },
+    permissions: {
+      type: [String],
+      enum: PERMISSIONS,
+      default: DEFAULT_OPERATOR_PERMISSIONS,
+    },
   },
   { timestamps: true, versionKey: false },
 );
@@ -36,6 +77,41 @@ export const User =
   mongoose.models.User || mongoose.model("User", UserSchema);
 
 const normalizeUsername = (username) => String(username ?? "").trim().toLowerCase();
+
+export const normalizePermissions = (permissions = []) => {
+  if (!Array.isArray(permissions)) {
+    throw new Error("Permissions must be an array.");
+  }
+
+  return [...new Set(permissions.map((permission) => String(permission).trim()))]
+    .filter(Boolean)
+    .map((permission) => {
+      if (!PERMISSION_SET.has(permission)) {
+        throw new Error(`Unsupported permission: ${permission}`);
+      }
+      return permission;
+    });
+};
+
+export const publicUser = (user) => {
+  if (!user) return null;
+  const role = user.role || ROLES.OPERATOR;
+  return {
+    id: String(user._id || user.id),
+    username: user.username,
+    role,
+    permissions: role === ROLES.ADMIN ? ADMIN_PERMISSIONS : user.permissions || [],
+    active: user.active !== false,
+  };
+};
+
+export const isAdmin = (user) => user?.role === ROLES.ADMIN;
+
+export const hasPermission = (user, permission) =>
+  isAdmin(user) || Boolean(user?.permissions?.includes(permission));
+
+export const hasAnyPermission = (user, permissions = []) =>
+  isAdmin(user) || permissions.some((permission) => hasPermission(user, permission));
 
 export const validateUsername = (username) => {
   const normalized = normalizeUsername(username);
@@ -101,7 +177,13 @@ export const ensureBootstrapUser = async () => {
   validatePassword(password);
 
   const existingUser = await User.findOne({ username });
-  if (existingUser) return;
+  if (existingUser) {
+    existingUser.role = ROLES.ADMIN;
+    existingUser.permissions = ADMIN_PERMISSIONS;
+    existingUser.active = true;
+    await existingUser.save();
+    return;
+  }
 
   if (replaceUsername && replaceUsername !== username) {
     validateUsername(replaceUsername);
@@ -110,13 +192,20 @@ export const ensureBootstrapUser = async () => {
       replacementUser.username = username;
       replacementUser.passwordHash = hashPassword(password);
       replacementUser.active = true;
+      replacementUser.role = ROLES.ADMIN;
+      replacementUser.permissions = ADMIN_PERMISSIONS;
       await replacementUser.save();
       return;
     }
   }
 
   try {
-    await User.create({ username, passwordHash: hashPassword(password) });
+    await User.create({
+      username,
+      passwordHash: hashPassword(password),
+      role: ROLES.ADMIN,
+      permissions: ADMIN_PERMISSIONS,
+    });
   } catch (error) {
     if (error.code !== 11000) throw error;
   }
@@ -129,6 +218,68 @@ export const verifyUserCredentials = async (username, password) => {
   }).select("+passwordHash");
 
   return user && passwordMatches(password, user.passwordHash) ? user : null;
+};
+
+export const listOperators = async () => {
+  const operators = await User.find({ role: ROLES.OPERATOR })
+    .sort({ username: 1 })
+    .lean();
+  return operators.map(publicUser);
+};
+
+export const createOperator = async (body = {}) => {
+  const username = validateUsername(body.username);
+  validatePassword(body.password);
+  const permissions = body.permissions
+    ? normalizePermissions(body.permissions)
+    : DEFAULT_OPERATOR_PERMISSIONS;
+
+  const operator = await User.create({
+    username,
+    passwordHash: hashPassword(body.password),
+    role: ROLES.OPERATOR,
+    permissions,
+    active: body.active !== false,
+  });
+
+  return publicUser(operator);
+};
+
+export const updateOperator = async (operatorId, body = {}) => {
+  const operator = await User.findOne({
+    _id: operatorId,
+    role: ROLES.OPERATOR,
+  }).select("+passwordHash");
+
+  if (!operator) return null;
+
+  if (body.username !== undefined) {
+    operator.username = validateUsername(body.username);
+  }
+
+  if (body.password !== undefined && body.password !== "") {
+    operator.passwordHash = hashPassword(body.password);
+  }
+
+  if (body.permissions !== undefined) {
+    operator.permissions = normalizePermissions(body.permissions);
+  }
+
+  if (body.active !== undefined) {
+    operator.active = Boolean(body.active);
+  }
+
+  await operator.save();
+  return publicUser(operator);
+};
+
+export const deactivateOperator = async (operatorId) => {
+  const operator = await User.findOneAndUpdate(
+    { _id: operatorId, role: ROLES.OPERATOR },
+    { active: false },
+    { new: true },
+  ).lean();
+  return publicUser(operator);
 };
 
 export const changeUserPassword = async (userId, currentPassword, newPassword) => {

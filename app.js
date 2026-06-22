@@ -3,6 +3,7 @@ import express from "express";
 import configuration from "./api/configuration.js";
 import login from "./api/login.js";
 import logout from "./api/logout.js";
+import operators from "./api/operators.js";
 import password from "./api/password.js";
 import session from "./api/session.js";
 import settings from "./api/settings.js";
@@ -59,6 +60,10 @@ export const createApp = () => {
   app.get("/api/settings", asyncHandler(settings));
   app.put("/api/settings", asyncHandler(settings));
   app.get("/api/configuration", asyncHandler(configuration));
+  app.get("/api/operators", asyncHandler(operators));
+  app.post("/api/operators", asyncHandler(operators));
+  app.put("/api/operators/:id", asyncHandler(operators));
+  app.delete("/api/operators/:id", asyncHandler(operators));
   app.get("/api/transactions", asyncHandler(transactions));
   app.post("/api/transactions", asyncHandler(transactions));
   app.put("/api/password", asyncHandler(password));

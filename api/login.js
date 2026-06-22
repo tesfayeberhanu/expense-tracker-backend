@@ -1,4 +1,5 @@
 import {
+  authenticatedSessionBody,
   createSessionCookie,
   requireSameOrigin,
   sendJson,
@@ -24,7 +25,7 @@ export default async function handler(request, response) {
     }
 
     response.setHeader("Set-Cookie", await createSessionCookie(user._id));
-    return sendJson(response, 200, { authenticated: true });
+    return sendJson(response, 200, authenticatedSessionBody(user));
   } catch (error) {
     console.error("Login error:", error.message);
     return sendJson(response, 500, { error: "Could not sign in." });

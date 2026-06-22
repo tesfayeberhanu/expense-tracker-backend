@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import mongoose from "mongoose";
 import { hasCrossOriginClient, isAllowedOrigin } from "./_cors.js";
 import { connectDatabase } from "./_database.js";
-import { User } from "./_users.js";
+import { hasAnyPermission, hasPermission, publicUser, User } from "./_users.js";
 
 const SESSION_COOKIE = "lp_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 12;
@@ -84,6 +84,53 @@ export const getValidSession = async (request) => {
 
 export const hasValidSession = async (request) =>
   Boolean(await getValidSession(request));
+
+export const getAuthenticatedUser = async (request) => {
+  const session = await getValidSession(request);
+  if (!session) return null;
+
+  await connectDatabase();
+  return User.findOne({ _id: session.user, active: true }).lean();
+};
+
+export const requireAuthenticatedUser = async (request, response) => {
+  const user = await getAuthenticatedUser(request);
+  if (!user) {
+    sendJson(response, 401, { error: "Authentication required." });
+    return null;
+  }
+
+  return user;
+};
+
+export const requirePermission = async (request, response, permission) => {
+  const user = await requireAuthenticatedUser(request, response);
+  if (!user) return null;
+
+  if (!hasPermission(user, permission)) {
+    sendJson(response, 403, { error: "Permission denied." });
+    return null;
+  }
+
+  return user;
+};
+
+export const requireAnyPermission = async (request, response, permissions) => {
+  const user = await requireAuthenticatedUser(request, response);
+  if (!user) return null;
+
+  if (!hasAnyPermission(user, permissions)) {
+    sendJson(response, 403, { error: "Permission denied." });
+    return null;
+  }
+
+  return user;
+};
+
+export const authenticatedSessionBody = (user) => ({
+  authenticated: true,
+  user: publicUser(user),
+});
 
 export const deleteSession = async (request) => {
   const token = sessionToken(request);

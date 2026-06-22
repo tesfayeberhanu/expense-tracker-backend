@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { DEFAULT_CONFIGURATION } from "./_configuration.js";
+import { hasAnyPermission, isAdmin } from "./_users.js";
 
 const TransactionSchema = new mongoose.Schema(
   {
@@ -62,6 +63,11 @@ const TransactionSchema = new mongoose.Schema(
       maxlength: 2000,
       default: "",
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+    },
   },
   { timestamps: true, versionKey: false },
 );
@@ -83,16 +89,24 @@ const allowedFields = [
   "notes",
 ];
 
-export const listTransactions = () =>
-  Transaction.find().sort({ date: -1, createdAt: -1 }).lean();
+const transactionScope = (user) =>
+  isAdmin(user) || hasAnyPermission(user, ["transactions:read_all", "reports:view_all"])
+    ? {}
+    : { createdBy: user._id };
 
-export const createTransaction = async (body = {}) => {
+export const listTransactions = (user) =>
+  Transaction.find(transactionScope(user)).sort({ date: -1, createdAt: -1 }).lean();
+
+export const createTransaction = async (body = {}, user) => {
   const transaction = await Transaction.create(
-    Object.fromEntries(
-      allowedFields
-        .filter((field) => body[field] !== undefined)
-        .map((field) => [field, body[field]]),
-    ),
+    {
+      ...Object.fromEntries(
+        allowedFields
+          .filter((field) => body[field] !== undefined)
+          .map((field) => [field, body[field]]),
+      ),
+      createdBy: user?._id,
+    },
   );
 
   return transaction.toObject();

@@ -13,6 +13,8 @@ npm start
 Required environment variable:
 
 - `MONGO_URI`: MongoDB connection string
+- `BOOTSTRAP_USERNAME` and `BOOTSTRAP_PASSWORD`: first admin account. If this
+  user already exists, it is promoted to admin on login.
 - `CORS_ORIGINS`: optional comma-separated browser origins allowed to call the
   API directly. `https://lbk-finance.vercel.app`,
   `https://tbk-expense-tracker.vercel.app`, and localhost development origins
@@ -49,6 +51,11 @@ Requires a valid MongoDB-backed session:
 
 - `GET /api/session`
 - `POST /api/logout`
+- `GET /api/operators` admin only; returns operators and assignable permissions
+- `POST /api/operators` admin only; creates an operator
+- `PUT /api/operators/:id` admin only; updates username, password, active state,
+  or permissions
+- `DELETE /api/operators/:id` admin only; deactivates an operator
 - `GET /api/settings`
 - `PUT /api/settings`
 - `GET /api/configuration`
@@ -56,3 +63,17 @@ Requires a valid MongoDB-backed session:
 - `POST /api/transactions`
 - `PUT /api/password`
 - `PUT /api/username`
+
+## Roles and permissions
+
+Admins can manage operators, settings, transactions, and reports. Operators are
+normal users with assigned permissions. The default operator permissions are:
+
+- `transactions:create`
+- `transactions:read`
+- `reports:view`
+- `settings:read`
+- `configuration:read`
+
+Available permissions are returned by `GET /api/operators` so the frontend can
+render an operator-permissions form dynamically.

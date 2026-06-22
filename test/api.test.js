@@ -5,10 +5,21 @@ import test from "node:test";
 import { clearSessionCookie } from "../api/_auth.js";
 import { isAllowedOrigin } from "../api/_cors.js";
 import { Transaction } from "../api/_transactions.js";
-import { hashPassword, passwordMatches, validateUsername } from "../api/_users.js";
+import {
+  DEFAULT_OPERATOR_PERMISSIONS,
+  hasPermission,
+  hashPassword,
+  normalizePermissions,
+  passwordMatches,
+  PERMISSIONS,
+  publicUser,
+  ROLES,
+  validateUsername,
+} from "../api/_users.js";
 import configuration from "../api/configuration.js";
 import login from "../api/login.js";
 import logout from "../api/logout.js";
+import operators from "../api/operators.js";
 import password from "../api/password.js";
 import session from "../api/session.js";
 import settings from "../api/settings.js";
@@ -52,6 +63,7 @@ test("rejects unauthenticated private API requests", async () => {
     [logout, request("POST")],
     [settings, request("GET")],
     [configuration, request("GET")],
+    [operators, request("GET")],
     [transactions, request("GET")],
   ]) {
     const apiResponse = response();
@@ -75,6 +87,7 @@ test("rejects cross-site state-changing requests", async () => {
     [login, request("POST", crossSiteHeaders, {})],
     [logout, request("POST", crossSiteHeaders)],
     [settings, request("PUT", crossSiteHeaders, {})],
+    [operators, request("POST", crossSiteHeaders, {})],
     [transactions, request("POST", crossSiteHeaders, {})],
     [password, request("PUT", crossSiteHeaders, {})],
     [username, request("PUT", crossSiteHeaders, {})],
@@ -130,6 +143,43 @@ test("hashes passwords before storing them", () => {
 test("normalizes and validates usernames", () => {
   assert.equal(validateUsername(" Leo "), "leo");
   assert.throws(() => validateUsername("not allowed"), /Username must contain/);
+});
+
+test("normalizes and validates operator permissions", () => {
+  assert.deepEqual(
+    normalizePermissions(["transactions:create", "transactions:create", "reports:view"]),
+    ["transactions:create", "reports:view"],
+  );
+  assert.throws(
+    () => normalizePermissions(["unknown:permission"]),
+    /Unsupported permission/,
+  );
+});
+
+test("admin users receive every permission in public session bodies", () => {
+  const user = publicUser({
+    _id: "6a2c718e606456f8dc61485e",
+    username: "admin",
+    role: ROLES.ADMIN,
+    active: true,
+    permissions: [],
+  });
+
+  assert.equal(hasPermission(user, "operators:manage"), true);
+  assert.deepEqual(user.permissions, PERMISSIONS);
+});
+
+test("operator users keep only assigned permissions", () => {
+  const user = publicUser({
+    _id: "6a2c718e606456f8dc61485e",
+    username: "operator",
+    role: ROLES.OPERATOR,
+    active: true,
+    permissions: DEFAULT_OPERATOR_PERMISSIONS,
+  });
+
+  assert.equal(hasPermission(user, "transactions:create"), true);
+  assert.equal(hasPermission(user, "operators:manage"), false);
 });
 
 test("validates transaction records before MongoDB persistence", async () => {

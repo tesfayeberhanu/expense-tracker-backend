@@ -1,5 +1,6 @@
 import {
-  hasValidSession,
+  requireAnyPermission,
+  requirePermission,
   requireApiRequest,
   requireSameOrigin,
   sendJson,
@@ -13,21 +14,26 @@ export default async function handler(request, response) {
   if (!requireApiRequest(request, response)) return;
   if (!requireSameOrigin(request, response)) return;
 
-  if (!(await hasValidSession(request))) {
-    return sendJson(response, 401, { error: "Authentication required." });
-  }
-
   if (!ALLOWED_METHODS.has(request.method)) {
     response.setHeader("Allow", [...ALLOWED_METHODS].join(", "));
     return sendJson(response, 405, { error: "Method not allowed." });
   }
 
+  const user =
+    request.method === "POST"
+      ? await requirePermission(request, response, "transactions:create")
+      : await requireAnyPermission(request, response, [
+          "transactions:read",
+          "reports:view",
+        ]);
+  if (!user) return;
+
   try {
     await connectDatabase();
     const transactions =
       request.method === "POST"
-        ? await createTransaction(request.body)
-        : await listTransactions();
+        ? await createTransaction(request.body, user)
+        : await listTransactions(user);
     return sendJson(response, request.method === "POST" ? 201 : 200, transactions);
   } catch (error) {
     if (error.name === "ValidationError" || error.name === "CastError") {
