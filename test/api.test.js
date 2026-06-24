@@ -92,6 +92,7 @@ test("rejects cross-site state-changing requests", async () => {
     [settings, request("PUT", crossSiteHeaders, {})],
     [operators, request("POST", crossSiteHeaders, {})],
     [transactions, request("POST", crossSiteHeaders, {})],
+    [transactions, request("PUT", crossSiteHeaders, {})],
     [password, request("PUT", crossSiteHeaders, {})],
     [username, request("PUT", crossSiteHeaders, {})],
   ]) {

@@ -66,6 +66,7 @@ export const createApp = () => {
   app.delete("/api/operators/:id", asyncHandler(operators));
   app.get("/api/transactions", asyncHandler(transactions));
   app.post("/api/transactions", asyncHandler(transactions));
+  app.put("/api/transactions/:id", asyncHandler(transactions));
   app.put("/api/password", asyncHandler(password));
   app.put("/api/username", asyncHandler(username));
 

@@ -111,3 +111,21 @@ export const createTransaction = async (body = {}, user) => {
 
   return transaction.toObject();
 };
+
+export const updateTransaction = async (transactionId, body = {}, user) => {
+  const transaction = await Transaction.findOne({
+    _id: transactionId,
+    ...transactionScope(user),
+  });
+
+  if (!transaction) return null;
+
+  for (const field of allowedFields) {
+    if (body[field] !== undefined) {
+      transaction[field] = body[field];
+    }
+  }
+
+  await transaction.save();
+  return transaction.toObject();
+};

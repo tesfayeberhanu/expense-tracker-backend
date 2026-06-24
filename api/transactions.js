@@ -6,9 +6,13 @@ import {
   sendJson,
 } from "./_auth.js";
 import { connectDatabase } from "./_database.js";
-import { createTransaction, listTransactions } from "./_transactions.js";
+import {
+  createTransaction,
+  listTransactions,
+  updateTransaction,
+} from "./_transactions.js";
 
-const ALLOWED_METHODS = new Set(["GET", "POST"]);
+const ALLOWED_METHODS = new Set(["GET", "POST", "PUT"]);
 
 export default async function handler(request, response) {
   if (!requireApiRequest(request, response)) return;
@@ -22,6 +26,8 @@ export default async function handler(request, response) {
   const user =
     request.method === "POST"
       ? await requirePermission(request, response, "transactions:create")
+      : request.method === "PUT"
+        ? await requirePermission(request, response, "transactions:update")
       : await requireAnyPermission(request, response, [
           "transactions:read",
           "reports:view",
@@ -30,11 +36,33 @@ export default async function handler(request, response) {
 
   try {
     await connectDatabase();
-    const transactions =
-      request.method === "POST"
-        ? await createTransaction(request.body, user)
-        : await listTransactions(user);
-    return sendJson(response, request.method === "POST" ? 201 : 200, transactions);
+    if (request.method === "POST") {
+      return sendJson(
+        response,
+        201,
+        await createTransaction(request.body, user),
+      );
+    }
+
+    if (request.method === "PUT") {
+      const transactionId = request.params?.id || request.body?.id;
+      if (!transactionId) {
+        return sendJson(response, 400, { error: "Transaction id is required." });
+      }
+
+      const transaction = await updateTransaction(
+        transactionId,
+        request.body,
+        user,
+      );
+      if (!transaction) {
+        return sendJson(response, 404, { error: "Transaction not found." });
+      }
+
+      return sendJson(response, 200, transaction);
+    }
+
+    return sendJson(response, 200, await listTransactions(user));
   } catch (error) {
     if (error.name === "ValidationError" || error.name === "CastError") {
       const details =
