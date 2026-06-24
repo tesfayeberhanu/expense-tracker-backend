@@ -181,6 +181,7 @@ export const ensureBootstrapUser = async () => {
     existingUser.role = ROLES.ADMIN;
     existingUser.permissions = ADMIN_PERMISSIONS;
     existingUser.active = true;
+    existingUser.passwordHash = hashPassword(password);
     await existingUser.save();
     return;
   }

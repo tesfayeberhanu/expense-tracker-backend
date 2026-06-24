@@ -7,6 +7,7 @@ import { isAllowedOrigin } from "../api/_cors.js";
 import { Transaction } from "../api/_transactions.js";
 import {
   DEFAULT_OPERATOR_PERMISSIONS,
+  ensureBootstrapUser,
   hasPermission,
   hashPassword,
   normalizePermissions,
@@ -14,6 +15,7 @@ import {
   PERMISSIONS,
   publicUser,
   ROLES,
+  User,
   validateUsername,
 } from "../api/_users.js";
 import configuration from "../api/configuration.js";
@@ -180,6 +182,41 @@ test("operator users keep only assigned permissions", () => {
 
   assert.equal(hasPermission(user, "transactions:create"), true);
   assert.equal(hasPermission(user, "operators:manage"), false);
+});
+
+test("bootstrap user resets existing admin password", async () => {
+  const originalUsername = process.env.BOOTSTRAP_USERNAME;
+  const originalPassword = process.env.BOOTSTRAP_PASSWORD;
+
+  process.env.BOOTSTRAP_USERNAME = "admin";
+  process.env.BOOTSTRAP_PASSWORD = "new-secure-password";
+
+  const savedUsers = [];
+  const originalFindOne = User.findOne;
+
+  User.findOne = async () => ({
+    username: "admin",
+    passwordHash: hashPassword("old-secure-password"),
+    role: ROLES.OPERATOR,
+    permissions: [],
+    active: false,
+    async save() {
+      savedUsers.push(this);
+    },
+  });
+
+  try {
+    await ensureBootstrapUser();
+  } finally {
+    User.findOne = originalFindOne;
+    process.env.BOOTSTRAP_USERNAME = originalUsername;
+    process.env.BOOTSTRAP_PASSWORD = originalPassword;
+  }
+
+  assert.equal(savedUsers.length, 1);
+  assert.equal(savedUsers[0].role, ROLES.ADMIN);
+  assert.equal(savedUsers[0].active, true);
+  assert.equal(passwordMatches("new-secure-password", savedUsers[0].passwordHash), true);
 });
 
 test("validates transaction records before MongoDB persistence", async () => {
