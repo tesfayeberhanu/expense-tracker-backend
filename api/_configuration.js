@@ -10,6 +10,7 @@ export const DEFAULT_CONFIGURATION = Object.freeze({
     "Santim",
     "Dash",
     "Dama",
+    "PA",
   ],
   currencies: ["ETB", "USD", "USDT"],
 });
@@ -64,6 +65,18 @@ export const getDashboardConfiguration = async () => {
     { $setOnInsert: { key: "dashboard", ...DEFAULT_CONFIGURATION } },
     { returnDocument: "after", setDefaultsOnInsert: true, upsert: true },
   ).lean();
+
+  const missingPipelines = DEFAULT_CONFIGURATION.pipelines.filter(
+    (pipeline) => !configuration.pipelines.includes(pipeline),
+  );
+
+  if (missingPipelines.length) {
+    configuration.pipelines = [...configuration.pipelines, ...missingPipelines];
+    await Configuration.updateOne(
+      { key: "dashboard" },
+      { $set: { pipelines: configuration.pipelines } },
+    );
+  }
 
   return publicConfiguration(configuration);
 };

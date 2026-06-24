@@ -3,6 +3,7 @@ import process from "node:process";
 import test from "node:test";
 
 import { clearSessionCookie } from "../api/_auth.js";
+import { DEFAULT_CONFIGURATION } from "../api/_configuration.js";
 import { isAllowedOrigin } from "../api/_cors.js";
 import { Transaction } from "../api/_transactions.js";
 import {
@@ -182,6 +183,10 @@ test("operator users keep only assigned permissions", () => {
 
   assert.equal(hasPermission(user, "transactions:create"), true);
   assert.equal(hasPermission(user, "operators:manage"), false);
+});
+
+test("default configuration includes PA operator option", () => {
+  assert.equal(DEFAULT_CONFIGURATION.pipelines.includes("PA"), true);
 });
 
 test("bootstrap user resets existing admin password", async () => {
