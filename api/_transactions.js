@@ -89,6 +89,21 @@ const allowedFields = [
   "notes",
 ];
 
+const transactionFields = (body = {}) => {
+  const fields = Object.fromEntries(
+    allowedFields
+      .filter((field) => body[field] !== undefined)
+      .map((field) => [field, body[field]]),
+  );
+
+  if (fields.rate !== undefined) {
+    const rate = Number(fields.rate);
+    fields.rate = Math.abs(rate - 1) < 0.00001 ? 1 : rate;
+  }
+
+  return fields;
+};
+
 const transactionScope = (user) =>
   isAdmin(user) || hasAnyPermission(user, ["transactions:read_all", "reports:view_all"])
     ? {}
@@ -100,11 +115,7 @@ export const listTransactions = (user) =>
 export const createTransaction = async (body = {}, user) => {
   const transaction = await Transaction.create(
     {
-      ...Object.fromEntries(
-        allowedFields
-          .filter((field) => body[field] !== undefined)
-          .map((field) => [field, body[field]]),
-      ),
+      ...transactionFields(body),
       createdBy: user?._id,
     },
   );
@@ -120,10 +131,8 @@ export const updateTransaction = async (transactionId, body = {}, user) => {
 
   if (!transaction) return null;
 
-  for (const field of allowedFields) {
-    if (body[field] !== undefined) {
-      transaction[field] = body[field];
-    }
+  for (const [field, value] of Object.entries(transactionFields(body))) {
+    transaction[field] = value;
   }
 
   await transaction.save();
